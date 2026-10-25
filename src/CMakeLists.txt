@@ -79,6 +79,10 @@ target_link_libraries(rew1 ${EXTERNAL_LIBS} common1 dis1)
 add_executable(nuwro main.cc nuwro.cc)
 target_link_libraries(nuwro ${EXTERNAL_LIBS} event1 common1 dis1 espp1 sf1)
 
+# [uboone patch] ExtGen request mode: bin/nuwro with its own main
+add_executable(nuwro_extgen extgen/nuwro_extgen.cc nuwro.cc)
+target_link_libraries(nuwro_extgen ${EXTERNAL_LIBS} event1 common1 dis1 espp1 sf1)
+
 add_executable(kaskada scatter.cc kaskada7.cc Interaction.cc hyperon_interaction.cc hyperon_cascade.cc input_data.cc data_container.cc 
                 nucleus.cc kaskada.cc rew/rewparams.cc ff.cc fsi.cc pitab.cc nucleus_data.cc isotopes.cc elements.cc) 
 target_link_libraries(kaskada ${EXTERNAL_LIBS} event1)

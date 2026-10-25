@@ -35,7 +35,7 @@ FC            = gfortran
 		gfortran  -c $< -o $@
 
 TRGTS = $(addprefix $(BIN)/,\
-        nuwro kaskada myroot glue event1.so nuwro2neut nuwro2nuance nuwro2rootracker\
+        nuwro nuwro_extgen kaskada myroot glue event1.so nuwro2neut nuwro2nuance nuwro2rootracker\
         dumpParams reweight_to reweight_along whist )
 		# test_beam_rf test_makehist test_nucleus test_beam
         # fsi niwg ladek_topologies test mb_nce_run ganalysis
@@ -71,6 +71,16 @@ $(BIN)/nuwro:   $(addprefix src/,\
         qel_sigma.o kinsolver.o kinematics.o pdg.o target_mixer.o nucleus.o sfevent.o ff.o dirs.o rpa_2013.o\
         nucleus_data.o isotopes.o elements.o rew/PythiaQuiet.o rew/rewparams.o\
         nuwro.o beam.o nd280stats.o beamHist.o coh.o fsi.o pitab.o scatter.o kaskada7.o shell_sampler.o Interaction.o input_data.o data_container.o  main.o) \
+        $(EVENT_OBJS) $(SF_OBJS) $(DIS_OBJS) $(MEC_OBJS) $(ESPP_OBJS) $(HYBRID_OBJS)
+		$(LINK.cc) $^ -o $@
+
+# [uboone patch] ExtGen request mode (src/extgen/nuwro_extgen.cc): the objects
+# of bin/nuwro with its own main instead of main.o
+$(BIN)/nuwro_extgen:   $(addprefix src/,\
+        pauli.o cohevent2.o cohdynamics2.o qelevent1.o hypevent.o hyperon_interaction.o hyperon_cascade.o lepevent.o nu_e_el_sigma.o\
+        qel_sigma.o kinsolver.o kinematics.o pdg.o target_mixer.o nucleus.o sfevent.o ff.o dirs.o rpa_2013.o\
+        nucleus_data.o isotopes.o elements.o rew/PythiaQuiet.o rew/rewparams.o\
+        nuwro.o beam.o nd280stats.o beamHist.o coh.o fsi.o pitab.o scatter.o kaskada7.o shell_sampler.o Interaction.o input_data.o data_container.o  extgen/nuwro_extgen.o) \
         $(EVENT_OBJS) $(SF_OBJS) $(DIS_OBJS) $(MEC_OBJS) $(ESPP_OBJS) $(HYBRID_OBJS)
 		$(LINK.cc) $^ -o $@
 

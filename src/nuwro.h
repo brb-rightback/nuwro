@@ -34,6 +34,7 @@ class NuWro
 		~NuWro();
 
 	private:
+		friend class ExtGenDriver;   // [uboone patch] request mode, src/extgen/nuwro_extgen.cc
 		params p;
 		args a;
 		chooser _procesy;
