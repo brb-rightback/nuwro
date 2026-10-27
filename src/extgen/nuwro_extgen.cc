@@ -54,10 +54,15 @@
 //   trial_stats.txt    req_id tgt_pdg nu_pdg ccnc E_GeV n_trials sum_u sum_u2 max_u
 //                      n_dropped   (u per nucleus, 1e-38 cm^2)
 //   scan file          req_id E_GeV dyn n_trials sum_w sum_w2 max_w n_nan
-//                      (w per nucleon, 1e-38 cm^2)
-// NaN weights (refused by NuWro's own chooser too) count as 0 and are
-// reported. An accepted event without its primary lepton after FSI is
-// dropped (n_dropped) and the request continues.
+//                      (w per nucleon, 1e-38 cm^2; n_trials valid trials,
+//                      n_nan discarded NaN trials on top)
+// NaN weights (from numerical failures inside NuWro's models; seen in the
+// hybrid RES model for antineutrinos above ~1.5 GeV, ~0.3% of those trials)
+// are discarded as stock NuWro's chooser does (Dyn::add refuses them): such
+// a trial does not count in any statistic, so cross sections are means over
+// valid trials, as NuWro reports them; the number is reported. An accepted
+// event without its primary lepton after FSI is dropped (n_dropped) and the
+// request continues.
 
 #include <cerrno>
 #include <cmath>
@@ -79,6 +84,10 @@
 NuWro nuwro;   // the stock main.cc defines it; the library code refers to it
 
 extern "C" {
+// Fortran stdout to /dev/null, as stock NuWro::main does first: Pythia6 prints
+// an error block for each fragmentation retry in DIS (PYSTRF "caught in
+// infinite loop", ~2 per DIS event at 3 GeV), which stock NuWro never shows
+void shhpythiaitokay_(void);
 // Pythia6 (hadronization in DIS) has its own RANMAR generator, which NuWro
 // never seeds: every process would replay the same sequence. RANMAR takes
 // seeds 0..900000000; MRPY(2) = 0 makes PYR re-initialize on its next call.
@@ -292,11 +301,16 @@ class ExtGenDriver
       for (auto const& c : channels) {
         double sw = 0, sw2 = 0, mw = 0;
         long nnan = 0;
-        for (long i = 0; i < trials; ++i) {
+        for (long i = 0; i < trials; ) {
           event* e = nullptr;
-          double w = MakeEvent(e, c.dyn);
+          const double w = MakeEvent(e, c.dyn);
           delete e;
-          if (w < 0) { ++nnan; w = 0; }
+          if (w < 0) {   // NaN: discarded, as stock NuWro does
+            if (++nnan > trials) die("more NaN weights than trials in channel " +
+                                     std::to_string(c.dyn), 4);
+            continue;
+          }
+          ++i;
           sw += w; sw2 += w * w;
           if (w > mw) mw = w;
         }
@@ -350,8 +364,13 @@ class ExtGenDriver
           if (x < acc) break;
         }
         event* e = nullptr;
-        double w = MakeEvent(e, channels[k].dyn);
-        if (w < 0) { ++nNan; w = 0; }
+        const double w = MakeEvent(e, channels[k].dyn);
+        if (w < 0) {   // NaN: discarded, as stock NuWro does (not a trial)
+          delete e;
+          --n;
+          if (++nNan > kMaxTrials) die("too many NaN weights", 4);
+          continue;
+        }
         if (w > r.M[k]) {
           char buf[300];
           std::snprintf(buf, sizeof buf,
@@ -377,7 +396,7 @@ class ExtGenDriver
     if (std::fclose(ev) != 0) die("error writing " + evPath);
     if (std::fclose(ts) != 0) die("error writing " + statPath);
     std::cout << kProg << ": served " << reqs.size() << " requests";
-    if (nNan) std::cout << " (" << nNan << " NaN weights counted as 0)";
+    if (nNan) std::cout << " (" << nNan << " NaN weights discarded)";
     std::cout << std::endl;
   }
 
@@ -450,6 +469,7 @@ int main(int argc, char** argv)
   if (mode == "scan" && trials < 1) die("scan mode needs -n TRIALS");
 
   try {
+    shhpythiaitokay_();
     nuwro.init(nwArgs.size(), nwArgs.data());
     ExtGenDriver d(nuwro);
     d.Setup();

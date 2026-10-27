@@ -76,14 +76,19 @@ Outputs (ExtGen formats, `ubsim/ExtGen/Modules/ExtGenIO.h`):
   (V4) compares with the spline table. `n_dropped`: accepted events without
   their primary lepton after FSI (none seen so far).
 
-NaN weights count as 0 (as in NuWro's chooser) and are reported.
+NaN weights (numerical failures inside NuWro's models; seen in the hybrid RES
+model for antineutrinos above ~1.5 GeV, ~0.3% of those trials) are discarded
+as stock NuWro's chooser does: such a trial counts in no statistic, so cross
+sections are means over valid trials, as NuWro reports them. Their number is
+reported.
 
 ### Scan mode
 
 Request lines `req_id E_GeV` (further columns ignored). For each request and
 each active channel, TRIALS trials without FSI; output lines
 `req_id E_GeV dyn n_trials sum_w sum_w2 max_w n_nan` (per nucleon, 1e-38
-cm²): σ_k(E) for the spline tables and the largest weights for the Max tables.
+cm²; `n_trials` valid trials, `n_nan` discarded NaN trials on top): σ_k(E) for
+the spline tables and the largest weights for the Max tables.
 
 ## Card requirements
 
